@@ -1,44 +1,23 @@
-import pdfplumber
-import spacy
-import re
-import pandas as pd
+from flask import Flask, render_template, request
+from parser import parse_resume
+import os
 
-nlp = spacy.load("en_core_web_sm")
+app = Flask(__name__)
+UPLOAD_FOLDER = "uploads"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-def extract_text_from_pdf(pdf_path):
-    text = ""
-    with pdfplumber.open(pdf_path) as pdf:
-        for page in pdf.pages:
-            text += page.extract_text() + "\n"
-    return text
+@app.route("/")
+def home():
+    return render_template("index.html")
 
-def parse_resume(pdf_path):
-    text = extract_text_from_pdf(pdf_path)
-    doc = nlp(text)
+@app.route("/upload", methods=["POST"])
+def upload():
+    file = request.files["resume"]
+    filepath = os.path.join(UPLOAD_FOLDER, file.filename)
+    file.save(filepath)
 
-    name = ""
-    skills = []
-    education = []
+    data = parse_resume(filepath)
+    return f"<h3>Extracted Data:</h3><p>{data}</p>"
 
-    # Simple regex for name (first line capitalized words)
-    for ent in doc.ents:
-        if ent.label_ == "PERSON":
-            name = ent.text
-            break
-
-    # Basic skill extraction
-    skill_keywords = ["Python", "Java", "SQL", "C++", "Machine Learning", "Data Analysis"]
-    for skill in skill_keywords:
-        if skill.lower() in text.lower():
-            skills.append(skill)
-
-    # Basic education detection
-    for word in ["B.Tech", "M.Tech", "B.Sc", "M.Sc", "MBA", "BCA", "MCA"]:
-        if word in text:
-            education.append(word)
-
-    data = {"Name": [name], "Skills": [", ".join(skills)], "Education": [", ".join(education)]}
-    df = pd.DataFrame(data)
-    df.to_csv("extracted_data.csv", mode="a", index=False, header=False)
-
-    return data
+if __name__ == "__main__":
+    app.run(debug=True)
