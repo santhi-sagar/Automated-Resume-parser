@@ -1,0 +1,2 @@
+The Automated Resume Parser is a Python-based project that extracts and categorizes key information (such as Name, Skills, and Education) from uploaded resumes (PDF files).
+It uses Natural Language Processing (NLP) techniques to read resumes, identify relevant information, and store the extracted data in a CSV file for further analysis.
