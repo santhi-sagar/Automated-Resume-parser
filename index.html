@@ -1,128 +1,39 @@
-                 // Complete progress
-                 progressBar.style.width = '100%';
-                 setTimeout(() => {
-                     progressContainer.style.display = 'none';
-                 }, 500);
+try {
+    // Complete progress
+    progressBar.style.width = '100%';
+    setTimeout(() => {
+        progressContainer.style.display = 'none';
+    }, 500);
 
-                 // Check content type before parsing JSON
-                 const contentType = response.headers.get('content-type');
-                 let data;
-                 
-                 if (contentType && contentType.includes('application/json')) {
-                     data = await response.json();
-                 } else {
-                     const text = await response.text();
-                     console.error('Received non-JSON response:', text.substring(0, 500));
-                     throw new Error(`Server returned invalid response: ${response.status}`);
-                 }
+    // Check content type before parsing JSON
+    const contentType = response.headers.get('content-type');
+    let data;
 
-                 if (response.ok) {
-                     showSuccess('Resume parsed successfully!');
-                     displayResults(data.data);
-                     scrollToResults();
-                 } else {
-                     showError(data.error || 'Error parsing resume');
-                 }
-             } catch (error) {
-                 progressContainer.style.display = 'none';
-                 showError('Error: ' + error.message);
-                 console.error('Upload error:', error);
-             }
-         }
+    if (response.ok) {
+        if (contentType && contentType.includes('application/json')) {
+            data = await response.json();
+        } else {
+            const text = await response.text();
+            console.error('Received non-JSON response:', text.substring(0, 500));
+            throw new Error(`Expected JSON but got HTML/text. Status: ${response.status} ${response.statusText}`);
+        }
 
-         /**
-          * Simulate progress bar animation
-          */
-         function simulateProgress() {
-             let progress = 0;
-             const interval = setInterval(() => {
-                 progress += Math.random() * 30;
-                 if (progress > 90) progress = 90;
-                 progressBar.style.width = progress + '%';
-
-                 if (progress >= 90) {
-                     clearInterval(interval);
-                 }
-             }, 200);
-         }
-
-         /**
-          * Display results
-          */
-         function displayResults(data) {
-             // Set name
-             document.getElementById('resultName').textContent = data.Name || '-';
-
-             // Set education
-             const educationDiv = document.getElementById('resultEducation');
-             if (Array.isArray(data.Education)) {
-                 educationDiv.innerHTML = data.Education.map(e => `<div>${e}</div>`).join('');
-             } else {
-                 educationDiv.textContent = data.Education || '-';
-             }
-
-             // Set skills
-             const skillsDiv = document.getElementById('resultSkills');
-             if (Array.isArray(data.Skills) && data.Skills.length > 0) {
-                 skillsDiv.innerHTML = data.Skills.map(skill => `<span>${skill}</span>`).join('');
-             } else if (typeof data.Skills === 'string') {
-                 skillsDiv.innerHTML = data.Skills.split(',').map(skill => `<span>${skill.trim()}</span>`).join('');
-             } else {
-                 skillsDiv.textContent = '-';
-             }
-
-             // Set contact
-             document.getElementById('resultContact').textContent = data.Contact || data.Email || '-';
-
-             // Display raw JSON
-             document.getElementById('jsonData').textContent = JSON.stringify(data, null, 2);
-
-             // Show results section
-             resultsSection.style.display = 'block';
-         }
-
-         /**
-          * Show error alert
-          */
-         function showError(message) {
-             errorDiv.textContent = message;
-             errorDiv.style.display = 'flex';
-         }
-
-         /**
-          * Show success alert
-          */
-         function showSuccess(message) {
-             successDiv.textContent = message;
-             successDiv.style.display = 'flex';
-         }
-
-         /**
-          * Hide all alerts
-          */
-         function hideAllAlerts() {
-             errorDiv.style.display = 'none';
-             successDiv.style.display = 'none';
-         }
-
-         /**
-          * Scroll to results
-          */
-         function scrollToResults() {
-             resultsSection.scrollIntoView({ behavior: 'smooth' });
-         }
-
-         /**
-          * Reset form
-          */
-         function resetForm() {
-             uploadForm.reset();
-             resultsSection.style.display = 'none';
-             fileInputWrapper.classList.remove('has-file');
-             const fileNameSpan = document.getElementById('fileName');
-             fileNameSpan.textContent = 'Click to browse or drag & drop';
-             hideAllAlerts();
-         }
-     </script>
-</body>
-</html>
+        showSuccess('Resume parsed successfully!');
+        displayResults(data.data);
+        scrollToResults();
+    } else {
+        // Handle error responses safely
+        if (contentType && contentType.includes('application/json')) {
+            data = await response.json();
+            showError(data.error || 'Error parsing resume');
+        } else {
+            const text = await response.text();
+            console.error('Server error response:', text.substring(0, 500));
+            showError(`Server returned error ${response.status}: ${response.statusText}`);
+        }
+    }
+} catch (error) {
+    progressContainer.style.display = 'none';
+    showError('Error: ' + error.message);
+    console.error('Upload error:', error);
+}
