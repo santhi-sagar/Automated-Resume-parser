@@ -62,7 +62,7 @@
     uploadForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       hideAllAlerts();
-      simulateProgress();
+      progressBar.style.width = '50%';
 
       const fileInput = document.getElementById('resumeFile');
       if (!fileInput.files.length) {
@@ -90,9 +90,6 @@
       }
     });
 
-    function simulateProgress() {
-      progressBar.style.width = '50%';
-    }
     function displayResults(data) {
       document.getElementById('resultName').textContent = data?.Name || '-';
       document.getElementById('resultEducation').innerHTML = (data?.Education || []).map(e => `<div>${e}</div>`).join('');
