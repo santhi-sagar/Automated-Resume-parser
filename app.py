@@ -1,10 +1,10 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
 from parser import parse_resume
 import os
 import logging
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder='.', static_folder='.')
 UPLOAD_FOLDER = "uploads"
 ALLOWED_EXTENSIONS = {"pdf"}
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
@@ -21,6 +21,16 @@ def allowed_file(filename):
 @app.route("/")
 def home():
     return render_template("index.html")
+
+
+@app.route("/styles.css")
+def serve_css():
+    return send_from_directory('.', 'styles.css')
+
+
+@app.route("/script.js")
+def serve_js():
+    return send_from_directory('.', 'script.js')
 
 
 @app.route("/upload", methods=["POST"])
