@@ -1,172 +1,66 @@
-import pdfplumber
-import spacy
-import re
-import pandas as pd
 import os
-import logging
+from PyPDF2 import PdfReader
 
-logger = logging.getLogger(__name__)
+def parse_resume(filepath):
+    """
+    Parse a resume PDF and return structured data.
+    Currently returns dummy structured data with extracted text.
+    Replace with advanced NLP for real parsing.
+    """
+    data = {
+        "Name": None,
+        "Education": [],
+        "Skills": [],
+        "Contact": None,
+        "RawText": ""
+    }
 
-try:
-    nlp = spacy.load("en_core_web_sm")
-except OSError:
-    logger.error("spaCy model 'en_core_web_sm' not found. Install it with: python -m spacy download en_core_web_sm")
-    raise
-
-
-def extract_text_from_pdf(pdf_path):
-    """Extract text from a PDF file."""
     try:
+        if not os.path.exists(filepath):
+            raise FileNotFoundError("Resume file not found")
+
+        # Read PDF text
+        reader = PdfReader(filepath)
         text = ""
-        with pdfplumber.open(pdf_path) as pdf:
-            for page in pdf.pages:
-                extracted = page.extract_text()
-                if extracted:
-                    text += extracted + "\n"
-        return text
-    except Exception as e:
-        logger.error(f"Error extracting text from PDF: {str(e)}")
-        raise
+        for page in reader.pages:
+            text += page.extract_text() or ""
+        data["RawText"] = text.strip()
 
+        # Dummy extraction rules (replace with NLP later)
+        # Name: first line of text
+        lines = text.splitlines()
+        if lines:
+            data["Name"] = lines[0].strip()
 
-def extract_email(text):
-    """Extract email address from text."""
-    email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
-    matches = re.findall(email_pattern, text)
-    return matches[0] if matches else "Not found"
+        # Education: look for keywords
+        for line in lines:
+            if "B.Tech" in line or "Bachelor" in line or "Master" in line or "M.Sc" in line:
+                data["Education"].append(line.strip())
 
+        # Skills: simple keyword split
+        if "Skills" in text:
+            idx = text.find("Skills")
+            skills_section = text[idx:idx+200]  # grab 200 chars after "Skills"
+            skills = skills_section.replace("Skills", "").replace(":", "").split(",")
+            data["Skills"] = [s.strip() for s in skills if s.strip()]
 
-def extract_phone(text):
-    """Extract phone number from text."""
-    phone_pattern = r'(\+\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}'
-    matches = re.findall(phone_pattern, text)
-    return matches[0] if matches else "Not found"
-
-
-def parse_resume(pdf_path):
-    """Parse resume and extract key information."""
-    try:
-        if not os.path.exists(pdf_path):
-            raise FileNotFoundError(f"PDF file not found: {pdf_path}")
-
-        text = extract_text_from_pdf(pdf_path)
-
-        if not text.strip():
-            raise ValueError("No text could be extracted from the PDF")
-
-        doc = nlp(text)
-
-        name = ""
-        skills = []
-        education = []
-        email = "Not found"
-        phone = "Not found"
-
-        # Extract name using spaCy NER
-        for ent in doc.ents:
-            if ent.label_ == "PERSON":
-                name = ent.text
+        # Contact: look for email
+        for word in text.split():
+            if "@" in word and "." in word:
+                data["Contact"] = word
                 break
 
-        # Extract email and phone
-        email = extract_email(text)
-        phone = extract_phone(text)
-
-        # Basic skill extraction
-        skill_keywords = [
-            "Python",
-            "Java",
-            "SQL",
-            "C++",
-            "C#",
-            "JavaScript",
-            "TypeScript",
-            "React",
-            "Angular",
-            "Vue.js",
-            "Node.js",
-            "Express",
-            "Django",
-            "Flask",
-            "Spring",
-            "AWS",
-            "Azure",
-            "GCP",
-            "Docker",
-            "Kubernetes",
-            "Git",
-            "MongoDB",
-            "PostgreSQL",
-            "MySQL",
-            "HTML",
-            "CSS",
-            "REST API",
-            "GraphQL",
-            "Machine Learning",
-            "Data Analysis",
-            "Pandas",
-            "NumPy",
-            "Matplotlib",
-        ]
-        for skill in skill_keywords:
-            if skill.lower() in text.lower():
-                skills.append(skill)
-
-        # Remove duplicates while preserving order
-        skills = list(dict.fromkeys(skills))
-
-        # Basic education detection
-        education_keywords = [
-            "B.Tech",
-            "M.Tech",
-            "B.Sc",
-            "M.Sc",
-            "MBA",
-            "BCA",
-            "MCA",
-            "Bachelor",
-            "Master",
-            "Ph.D",
-            "Diploma",
-        ]
-        for word in education_keywords:
-            if word in text:
-                education.append(word)
-
-        # Remove duplicates while preserving order
-        education = list(dict.fromkeys(education))
-
-        data = {
-            "Name": name or "Not found",
-            "Email": email,
-            "Contact": phone,
-            "Skills": skills if skills else ["Not found"],
-            "Education": education if education else ["Not found"],
-        }
-
-        # Save to CSV with proper header handling
-        csv_file = "extracted_data.csv"
-        file_exists = os.path.isfile(csv_file)
-
-        # Flatten lists for CSV
-        csv_data = {
-            "Name": data["Name"],
-            "Email": data["Email"],
-            "Contact": data["Contact"],
-            "Skills": ", ".join(data["Skills"]),
-            "Education": ", ".join(data["Education"]),
-        }
-
-        df = pd.DataFrame([csv_data])
-        df.to_csv(
-            csv_file,
-            mode="a",
-            index=False,
-            header=not file_exists,
-        )
+        # Fallbacks
+        if not data["Name"]:
+            data["Name"] = "Unknown"
+        if not data["Education"]:
+            data["Education"] = ["Not found"]
+        if not data["Skills"]:
+            data["Skills"] = ["Not found"]
+        if not data["Contact"]:
+            data["Contact"] = "Not found"
 
         return data
 
     except Exception as e:
-        logger.error(f"Error parsing resume: {str(e)}")
-        raise
+        return {"error": f"Failed to parse resume: {str(e)}"}
