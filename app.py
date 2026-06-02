@@ -37,21 +37,45 @@ def upload():
         if not allowed_file(file.filename):
             return jsonify({"error": "Only PDF files are allowed"}), 400
 
-        if len(file.read()) > MAX_FILE_SIZE:
+        # Check file size
+        file_content = file.read()
+        if len(file_content) > MAX_FILE_SIZE:
             return jsonify({"error": "File size exceeds 10MB limit"}), 400
 
-        file.seek(0)  # Reset file pointer after size check
+        # Reset file pointer and save
+        file.seek(0)
         filename = secure_filename(file.filename)
         filepath = os.path.join(UPLOAD_FOLDER, filename)
         file.save(filepath)
 
+        # Parse the resume
+        logger.info(f"Parsing resume: {filepath}")
         data = parse_resume(filepath)
+        
+        logger.info(f"Successfully parsed resume: {data}")
         return jsonify({"success": True, "data": data}), 200
 
+    except FileNotFoundError as e:
+        logger.error(f"File not found: {str(e)}")
+        return jsonify({"error": "File not found"}), 404
+    except ValueError as e:
+        logger.error(f"Value error: {str(e)}")
+        return jsonify({"error": str(e)}), 400
     except Exception as e:
         logger.error(f"Error processing resume: {str(e)}")
-        return jsonify({"error": "Failed to process resume"}), 500
+        return jsonify({"error": f"Failed to process resume: {str(e)}"}), 500
+
+
+@app.errorhandler(404)
+def not_found(error):
+    return jsonify({"error": "Endpoint not found"}), 404
+
+
+@app.errorhandler(500)
+def internal_error(error):
+    logger.error(f"Internal server error: {str(error)}")
+    return jsonify({"error": "Internal server error"}), 500
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0', port=5000)
