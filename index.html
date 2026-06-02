@@ -5,54 +5,50 @@
   <title>Resume Parser</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: 'Segoe UI', Arial, sans-serif;
       background: #f4f6f9;
       margin: 0;
       padding: 0;
     }
     header {
-      background: #2c3e50;
+      background: linear-gradient(90deg, #3498db, #2c3e50);
       color: #fff;
-      padding: 20px;
+      padding: 30px;
       text-align: center;
     }
+    header h1 { margin: 0; font-size: 2em; }
     form {
-      margin: 30px auto;
-      padding: 20px;
+      margin: 40px auto;
+      padding: 30px;
       background: #fff;
-      border-radius: 8px;
+      border-radius: 10px;
       max-width: 600px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       text-align: center;
-    }
-    input[type="file"] {
-      display: none;
     }
     #fileInputWrapper {
       border: 2px dashed #3498db;
-      padding: 30px;
+      padding: 40px;
       cursor: pointer;
-      border-radius: 8px;
+      border-radius: 10px;
       margin-bottom: 20px;
       background: #ecf6fc;
+      transition: background 0.3s ease;
     }
-    #fileName {
-      display: block;
-      margin-top: 10px;
-      color: #555;
-    }
+    #fileInputWrapper:hover { background: #d6ebfa; }
+    input[type="file"] { display: none; }
+    #fileName { display: block; margin-top: 10px; color: #555; }
     button {
       background: #3498db;
       color: #fff;
       border: none;
-      padding: 12px 20px;
+      padding: 12px 25px;
       border-radius: 6px;
       cursor: pointer;
       font-size: 16px;
+      transition: background 0.3s ease;
     }
-    button:hover {
-      background: #2980b9;
-    }
+    button:hover { background: #2980b9; }
     #progressContainer {
       width: 100%;
       background: #eee;
@@ -83,8 +79,8 @@
       max-width: 600px;
       background: #fff;
       padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
     #resultSkills span {
       margin: 5px;
