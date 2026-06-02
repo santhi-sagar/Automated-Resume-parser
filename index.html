@@ -4,98 +4,24 @@
   <meta charset="UTF-8">
   <title>Resume Parser</title>
   <style>
-    body {
-      font-family: 'Segoe UI', Arial, sans-serif;
-      background: #f4f6f9;
-      margin: 0;
-      padding: 0;
-    }
-    header {
-      background: linear-gradient(90deg, #3498db, #2c3e50);
-      color: #fff;
-      padding: 30px;
-      text-align: center;
-    }
-    header h1 { margin: 0; font-size: 2em; }
-    form {
-      margin: 40px auto;
-      padding: 30px;
-      background: #fff;
-      border-radius: 10px;
-      max-width: 600px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      text-align: center;
-    }
-    #fileInputWrapper {
-      border: 2px dashed #3498db;
-      padding: 40px;
-      cursor: pointer;
-      border-radius: 10px;
-      margin-bottom: 20px;
-      background: #ecf6fc;
-      transition: background 0.3s ease;
-    }
-    #fileInputWrapper:hover { background: #d6ebfa; }
+    body { font-family: 'Segoe UI', Arial; background: #f4f6f9; margin: 0; }
+    header { background: #3498db; color: #fff; padding: 20px; text-align: center; }
+    form { margin: 30px auto; padding: 20px; background: #fff; border-radius: 8px;
+           max-width: 600px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); text-align: center; }
+    #fileInputWrapper { border: 2px dashed #3498db; padding: 30px; cursor: pointer;
+                        border-radius: 8px; margin-bottom: 20px; background: #ecf6fc; }
     input[type="file"] { display: none; }
-    #fileName { display: block; margin-top: 10px; color: #555; }
-    button {
-      background: #3498db;
-      color: #fff;
-      border: none;
-      padding: 12px 25px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 16px;
-      transition: background 0.3s ease;
-    }
+    button { background: #3498db; color: #fff; border: none; padding: 12px 20px;
+             border-radius: 6px; cursor: pointer; font-size: 16px; }
     button:hover { background: #2980b9; }
-    #progressContainer {
-      width: 100%;
-      background: #eee;
-      height: 10px;
-      margin-top: 20px;
-      border-radius: 5px;
-      overflow: hidden;
-    }
-    #progressBar {
-      width: 0%;
-      height: 10px;
-      background: #27ae60;
-      transition: width 0.3s ease;
-    }
-    #errorDiv, #successDiv {
-      display: none;
-      padding: 12px;
-      margin: 20px auto;
-      max-width: 600px;
-      border-radius: 6px;
-      font-weight: bold;
-    }
+    #progressContainer { width: 100%; background: #eee; height: 10px; margin-top: 20px; border-radius: 5px; }
+    #progressBar { width: 0%; height: 10px; background: #27ae60; transition: width 0.3s ease; }
+    #errorDiv, #successDiv { display: none; padding: 12px; margin: 20px auto; max-width: 600px; border-radius: 6px; font-weight: bold; }
     #errorDiv { background: #e74c3c; color: #fff; }
     #successDiv { background: #2ecc71; color: #fff; }
-    #resultsSection {
-      display: none;
-      margin: 30px auto;
-      max-width: 600px;
-      background: #fff;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-    #resultSkills span {
-      margin: 5px;
-      background: #3498db;
-      color: #fff;
-      padding: 5px 10px;
-      border-radius: 4px;
-      display: inline-block;
-    }
-    pre {
-      background: #f4f4f4;
-      padding: 10px;
-      border-radius: 6px;
-      overflow-x: auto;
-    }
+    #resultsSection { display: none; margin: 30px auto; max-width: 600px; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+    #resultSkills span { margin: 5px; background: #3498db; color: #fff; padding: 5px 10px; border-radius: 4px; display: inline-block; }
+    pre { background: #f4f4f4; padding: 10px; border-radius: 6px; overflow-x: auto; }
   </style>
 </head>
 <body>
@@ -112,10 +38,7 @@
     <button type="submit">Upload Resume</button>
   </form>
 
-  <div id="progressContainer">
-    <div id="progressBar"></div>
-  </div>
-
+  <div id="progressContainer"><div id="progressBar"></div></div>
   <div id="errorDiv"></div>
   <div id="successDiv"></div>
 
@@ -132,7 +55,6 @@
   <script>
     const uploadForm = document.getElementById('uploadForm');
     const progressBar = document.getElementById('progressBar');
-    const progressContainer = document.getElementById('progressContainer');
     const errorDiv = document.getElementById('errorDiv');
     const successDiv = document.getElementById('successDiv');
     const resultsSection = document.getElementById('resultsSection');
@@ -140,7 +62,6 @@
     uploadForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       hideAllAlerts();
-      progressContainer.style.display = 'block';
       simulateProgress();
 
       const fileInput = document.getElementById('resumeFile');
@@ -153,78 +74,36 @@
       formData.append('resume', fileInput.files[0]); // must match Flask key
 
       try {
-        const response = await fetch('/upload', {
-          method: 'POST',
-          body: formData
-        });
-
+        const response = await fetch('/upload', { method: 'POST', body: formData });
         progressBar.style.width = '100%';
-        setTimeout(() => { progressContainer.style.display = 'none'; }, 500);
 
         const contentType = response.headers.get('content-type');
-        let data;
-
-        if (response.ok) {
-          if (contentType && contentType.includes('application/json')) {
-            data = await response.json();
-            showSuccess('Resume parsed successfully!');
-            displayResults(data.data);
-          } else {
-            const text = await response.text();
-            console.error('Received non-JSON response:', text.substring(0, 500));
-            throw new Error(`Expected JSON but got HTML/text. Status: ${response.status} ${response.statusText}`);
-          }
+        if (response.ok && contentType.includes('application/json')) {
+          const data = await response.json();
+          showSuccess('Resume parsed successfully!');
+          displayResults(data.data);
         } else {
-          showError(`Server returned error ${response.status}: ${response.statusText}`);
+          showError(`Server error: ${response.status} ${response.statusText}`);
         }
       } catch (error) {
-        progressContainer.style.display = 'none';
         showError('Error: ' + error.message);
-        console.error('Upload error:', error);
       }
     });
 
     function simulateProgress() {
-      let progress = 0;
-      const interval = setInterval(() => {
-        progress += Math.random() * 30;
-        if (progress > 90) progress = 90;
-        progressBar.style.width = progress + '%';
-        if (progress >= 90) clearInterval(interval);
-      }, 200);
+      progressBar.style.width = '50%';
     }
-
     function displayResults(data) {
       document.getElementById('resultName').textContent = data?.Name || '-';
-      const educationDiv = document.getElementById('resultEducation');
-      if (Array.isArray(data?.Education)) {
-        educationDiv.innerHTML = data.Education.map(e => `<div>${e}</div>`).join('');
-      } else {
-        educationDiv.textContent = data?.Education || '-';
-      }
-      const skillsDiv = document.getElementById('resultSkills');
-      if (Array.isArray(data?.Skills)) {
-        skillsDiv.innerHTML = data.Skills.map(skill => `<span>${skill}</span>`).join('');
-      } else {
-        skillsDiv.textContent = '-';
-      }
+      document.getElementById('resultEducation').innerHTML = (data?.Education || []).map(e => `<div>${e}</div>`).join('');
+      document.getElementById('resultSkills').innerHTML = (data?.Skills || []).map(s => `<span>${s}</span>`).join('');
       document.getElementById('resultContact').textContent = data?.Contact || '-';
       document.getElementById('jsonData').textContent = JSON.stringify(data, null, 2);
       resultsSection.style.display = 'block';
     }
-
-    function showError(message) {
-      errorDiv.textContent = message;
-      errorDiv.style.display = 'block';
-    }
-    function showSuccess(message) {
-      successDiv.textContent = message;
-      successDiv.style.display = 'block';
-    }
-    function hideAllAlerts() {
-      errorDiv.style.display = 'none';
-      successDiv.style.display = 'none';
-    }
+    function showError(msg) { errorDiv.textContent = msg; errorDiv.style.display = 'block'; }
+    function showSuccess(msg) { successDiv.textContent = msg; successDiv.style.display = 'block'; }
+    function hideAllAlerts() { errorDiv.style.display = 'none'; successDiv.style.display = 'none'; }
   </script>
 </body>
 </html>
