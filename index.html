@@ -1,13 +1,156 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Resume Parser</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .container {
+      background-color: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      text-align: center;
+    }
+    .form-group {
+      margin: 20px 0;
+    }
+    input[type="file"] {
+      display: block;
+      margin: 10px 0;
+      padding: 10px;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    .error {
+      color: #d32f2f;
+      margin-top: 10px;
+      padding: 10px;
+      background-color: #ffebee;
+      border-radius: 4px;
+      display: none;
+    }
+    .success {
+      color: #388e3c;
+      margin-top: 10px;
+      padding: 10px;
+      background-color: #e8f5e9;
+      border-radius: 4px;
+      display: none;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      background-color: #f9f9f9;
+      border-left: 4px solid #4CAF50;
+      display: none;
+    }
+    .result h2 {
+      color: #333;
+      margin-top: 0;
+    }
+    .result-item {
+      margin: 10px 0;
+    }
+    .result-label {
+      font-weight: bold;
+      color: #555;
+    }
+  </style>
 </head>
 <body>
-  <h1>Automated Resume Parser</h1>
-  <form action="/upload" method="post" enctype="multipart/form-data">
-    <input type="file" name="resume" accept=".pdf" required>
-    <button type="submit">Upload</button>
-  </form>
+  <div class="container">
+    <h1>Automated Resume Parser</h1>
+    <form id="uploadForm">
+      <div class="form-group">
+        <label for="resume">Upload Resume (PDF only, max 10MB):</label>
+        <input type="file" id="resume" name="resume" accept=".pdf" required>
+      </div>
+      <button type="submit">Upload & Parse</button>
+    </form>
+
+    <div id="error" class="error"></div>
+    <div id="success" class="success"></div>
+    <div id="result" class="result"></div>
+  </div>
+
+  <script>
+    document.getElementById("uploadForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const fileInput = document.getElementById("resume");
+      const file = fileInput.files[0];
+      const errorDiv = document.getElementById("error");
+      const successDiv = document.getElementById("success");
+      const resultDiv = document.getElementById("result");
+
+      errorDiv.style.display = "none";
+      successDiv.style.display = "none";
+      resultDiv.style.display = "none";
+
+      if (!file) {
+        errorDiv.textContent = "Please select a file";
+        errorDiv.style.display = "block";
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("resume", file);
+
+      try {
+        const response = await fetch("/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          successDiv.textContent = "Resume parsed successfully!";
+          successDiv.style.display = "block";
+
+          resultDiv.innerHTML = `
+            <h2>Extracted Information:</h2>
+            <div class="result-item">
+              <span class="result-label">Name:</span> ${data.data.Name}
+            </div>
+            <div class="result-item">
+              <span class="result-label">Skills:</span> ${data.data.Skills}
+            </div>
+            <div class="result-item">
+              <span class="result-label">Education:</span> ${data.data.Education}
+            </div>
+          `;
+          resultDiv.style.display = "block";
+        } else {
+          errorDiv.textContent = data.error || "Error parsing resume";
+          errorDiv.style.display = "block";
+        }
+      } catch (error) {
+        errorDiv.textContent = "Error: " + error.message;
+        errorDiv.style.display = "block";
+      }
+    });
+  </script>
 </body>
 </html>
