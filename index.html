@@ -1,39 +1,172 @@
-try {
-    // Complete progress
-    progressBar.style.width = '100%';
-    setTimeout(() => {
-        progressContainer.style.display = 'none';
-    }, 500);
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Resume Parser</title>
+    <style>
+        /* Basic styling for progress, alerts, and results */
+        #progressContainer { width: 100%; background: #eee; height: 10px; }
+        #progressBar { width: 0%; height: 10px; background: #4caf50; }
+        #errorDiv, #successDiv { display: none; padding: 10px; margin: 10px 0; }
+        #errorDiv { background: #f44336; color: #fff; }
+        #successDiv { background: #4caf50; color: #fff; }
+        #resultsSection { display: none; margin-top: 20px; }
+        #resultSkills span { margin-right: 5px; background: #ddd; padding: 3px; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <form id="uploadForm">
+        <div id="fileInputWrapper">
+            <input type="file" id="resumeFile" name="resumeFile" />
+            <span id="fileName">Click to browse or drag & drop</span>
+        </div>
+        <button type="submit">Upload Resume</button>
+    </form>
 
-    // Check content type before parsing JSON
-    const contentType = response.headers.get('content-type');
-    let data;
+    <div id="progressContainer">
+        <div id="progressBar"></div>
+    </div>
 
-    if (response.ok) {
-        if (contentType && contentType.includes('application/json')) {
-            data = await response.json();
-        } else {
-            const text = await response.text();
-            console.error('Received non-JSON response:', text.substring(0, 500));
-            throw new Error(`Expected JSON but got HTML/text. Status: ${response.status} ${response.statusText}`);
+    <div id="errorDiv"></div>
+    <div id="successDiv"></div>
+
+    <section id="resultsSection">
+        <h2>Parsed Resume</h2>
+        <p><strong>Name:</strong> <span id="resultName"></span></p>
+        <p><strong>Education:</strong> <div id="resultEducation"></div></p>
+        <p><strong>Skills:</strong> <div id="resultSkills"></div></p>
+        <p><strong>Contact:</strong> <span id="resultContact"></span></p>
+        <h3>Raw JSON</h3>
+        <pre id="jsonData"></pre>
+    </section>
+
+    <script>
+        const uploadForm = document.getElementById('uploadForm');
+        const progressBar = document.getElementById('progressBar');
+        const progressContainer = document.getElementById('progressContainer');
+        const errorDiv = document.getElementById('errorDiv');
+        const successDiv = document.getElementById('successDiv');
+        const resultsSection = document.getElementById('resultsSection');
+        const fileInputWrapper = document.getElementById('fileInputWrapper');
+
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideAllAlerts();
+            progressContainer.style.display = 'block';
+            simulateProgress();
+
+            const fileInput = document.getElementById('resumeFile');
+            if (!fileInput.files.length) {
+                showError('Please select a file to upload.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('resumeFile', fileInput.files[0]);
+
+            try {
+                const response = await fetch('/api/parseResume', { // <-- replace with your backend API URL
+                    method: 'POST',
+                    body: formData
+                });
+
+                // Complete progress
+                progressBar.style.width = '100%';
+                setTimeout(() => {
+                    progressContainer.style.display = 'none';
+                }, 500);
+
+                const contentType = response.headers.get('content-type');
+                let data;
+
+                if (response.ok) {
+                    if (contentType && contentType.includes('application/json')) {
+                        data = await response.json();
+                        showSuccess('Resume parsed successfully!');
+                        displayResults(data.data);
+                        scrollToResults();
+                    } else {
+                        const text = await response.text();
+                        console.error('Received non-JSON response:', text.substring(0, 500));
+                        throw new Error(`Expected JSON but got HTML/text. Status: ${response.status} ${response.statusText}`);
+                    }
+                } else {
+                    if (contentType && contentType.includes('application/json')) {
+                        data = await response.json();
+                        showError(data.error || 'Error parsing resume');
+                    } else {
+                        const text = await response.text();
+                        console.error('Server error response:', text.substring(0, 500));
+                        showError(`Server returned error ${response.status}: ${response.statusText}`);
+                    }
+                }
+            } catch (error) {
+                progressContainer.style.display = 'none';
+                showError('Error: ' + error.message);
+                console.error('Upload error:', error);
+            }
+        });
+
+        function simulateProgress() {
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 30;
+                if (progress > 90) progress = 90;
+                progressBar.style.width = progress + '%';
+                if (progress >= 90) clearInterval(interval);
+            }, 200);
         }
 
-        showSuccess('Resume parsed successfully!');
-        displayResults(data.data);
-        scrollToResults();
-    } else {
-        // Handle error responses safely
-        if (contentType && contentType.includes('application/json')) {
-            data = await response.json();
-            showError(data.error || 'Error parsing resume');
-        } else {
-            const text = await response.text();
-            console.error('Server error response:', text.substring(0, 500));
-            showError(`Server returned error ${response.status}: ${response.statusText}`);
+        function displayResults(data) {
+            document.getElementById('resultName').textContent = data?.Name || '-';
+
+            const educationDiv = document.getElementById('resultEducation');
+            if (Array.isArray(data?.Education)) {
+                educationDiv.innerHTML = data.Education.map(e => `<div>${e}</div>`).join('');
+            } else {
+                educationDiv.textContent = data?.Education || '-';
+            }
+
+            const skillsDiv = document.getElementById('resultSkills');
+            if (Array.isArray(data?.Skills) && data.Skills.length > 0) {
+                skillsDiv.innerHTML = data.Skills.map(skill => `<span>${skill}</span>`).join('');
+            } else if (typeof data?.Skills === 'string') {
+                skillsDiv.innerHTML = data.Skills.split(',').map(skill => `<span>${skill.trim()}</span>`).join('');
+            } else {
+                skillsDiv.textContent = '-';
+            }
+
+            document.getElementById('resultContact').textContent = data?.Contact || data?.Email || '-';
+            document.getElementById('jsonData').textContent = JSON.stringify(data, null, 2);
+            resultsSection.style.display = 'block';
         }
-    }
-} catch (error) {
-    progressContainer.style.display = 'none';
-    showError('Error: ' + error.message);
-    console.error('Upload error:', error);
-}
+
+        function showError(message) {
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'flex';
+        }
+
+        function showSuccess(message) {
+            successDiv.textContent = message;
+            successDiv.style.display = 'flex';
+        }
+
+        function hideAllAlerts() {
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+        }
+
+        function scrollToResults() {
+            resultsSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function resetForm() {
+            uploadForm.reset();
+            resultsSection.style.display = 'none';
+            fileInputWrapper.classList.remove('has-file');
+            document.getElementById('fileName').textContent = 'Click to browse or drag & drop';
+            hideAllAlerts();
+        }
+    </script>
+</body>
+</html>
