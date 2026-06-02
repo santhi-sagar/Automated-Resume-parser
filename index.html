@@ -4,18 +4,112 @@
   <meta charset="UTF-8">
   <title>Resume Parser</title>
   <style>
-    #progressContainer { width: 100%; background: #eee; height: 10px; }
-    #progressBar { width: 0%; height: 10px; background: #4caf50; }
-    #errorDiv, #successDiv { display: none; padding: 10px; margin: 10px 0; }
-    #errorDiv { background: #f44336; color: #fff; }
-    #successDiv { background: #4caf50; color: #fff; }
-    #resultsSection { display: none; margin-top: 20px; }
-    #resultSkills span { margin-right: 5px; background: #ddd; padding: 3px; border-radius: 3px; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f9;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background: #2c3e50;
+      color: #fff;
+      padding: 20px;
+      text-align: center;
+    }
+    form {
+      margin: 30px auto;
+      padding: 20px;
+      background: #fff;
+      border-radius: 8px;
+      max-width: 600px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    input[type="file"] {
+      display: none;
+    }
+    #fileInputWrapper {
+      border: 2px dashed #3498db;
+      padding: 30px;
+      cursor: pointer;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      background: #ecf6fc;
+    }
+    #fileName {
+      display: block;
+      margin-top: 10px;
+      color: #555;
+    }
+    button {
+      background: #3498db;
+      color: #fff;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background: #2980b9;
+    }
+    #progressContainer {
+      width: 100%;
+      background: #eee;
+      height: 10px;
+      margin-top: 20px;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    #progressBar {
+      width: 0%;
+      height: 10px;
+      background: #27ae60;
+      transition: width 0.3s ease;
+    }
+    #errorDiv, #successDiv {
+      display: none;
+      padding: 12px;
+      margin: 20px auto;
+      max-width: 600px;
+      border-radius: 6px;
+      font-weight: bold;
+    }
+    #errorDiv { background: #e74c3c; color: #fff; }
+    #successDiv { background: #2ecc71; color: #fff; }
+    #resultsSection {
+      display: none;
+      margin: 30px auto;
+      max-width: 600px;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    #resultSkills span {
+      margin: 5px;
+      background: #3498db;
+      color: #fff;
+      padding: 5px 10px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+    pre {
+      background: #f4f4f4;
+      padding: 10px;
+      border-radius: 6px;
+      overflow-x: auto;
+    }
   </style>
 </head>
 <body>
+  <header>
+    <h1>Resume Parser</h1>
+    <p>Upload your resume (PDF) and get structured data instantly</p>
+  </header>
+
   <form id="uploadForm">
-    <div id="fileInputWrapper">
+    <div id="fileInputWrapper" onclick="document.getElementById('resumeFile').click()">
       <input type="file" id="resumeFile" name="resumeFile" />
       <span id="fileName">Click to browse or drag & drop</span>
     </div>
@@ -46,7 +140,6 @@
     const errorDiv = document.getElementById('errorDiv');
     const successDiv = document.getElementById('successDiv');
     const resultsSection = document.getElementById('resultsSection');
-    const fileInputWrapper = document.getElementById('fileInputWrapper');
 
     uploadForm.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -64,7 +157,7 @@
       formData.append('resume', fileInput.files[0]); // must match Flask key
 
       try {
-        const response = await fetch('/upload', { // must match Flask route
+        const response = await fetch('/upload', {
           method: 'POST',
           body: formData
         });
@@ -80,21 +173,13 @@
             data = await response.json();
             showSuccess('Resume parsed successfully!');
             displayResults(data.data);
-            scrollToResults();
           } else {
             const text = await response.text();
             console.error('Received non-JSON response:', text.substring(0, 500));
             throw new Error(`Expected JSON but got HTML/text. Status: ${response.status} ${response.statusText}`);
           }
         } else {
-          if (contentType && contentType.includes('application/json')) {
-            data = await response.json();
-            showError(data.error || 'Error parsing resume');
-          } else {
-            const text = await response.text();
-            console.error('Server error response:', text.substring(0, 500));
-            showError(`Server returned error ${response.status}: ${response.statusText}`);
-          }
+          showError(`Server returned error ${response.status}: ${response.statusText}`);
         }
       } catch (error) {
         progressContainer.style.display = 'none';
@@ -122,32 +207,27 @@
         educationDiv.textContent = data?.Education || '-';
       }
       const skillsDiv = document.getElementById('resultSkills');
-      if (Array.isArray(data?.Skills) && data.Skills.length > 0) {
+      if (Array.isArray(data?.Skills)) {
         skillsDiv.innerHTML = data.Skills.map(skill => `<span>${skill}</span>`).join('');
-      } else if (typeof data?.Skills === 'string') {
-        skillsDiv.innerHTML = data.Skills.split(',').map(skill => `<span>${skill.trim()}</span>`).join('');
       } else {
         skillsDiv.textContent = '-';
       }
-      document.getElementById('resultContact').textContent = data?.Contact || data?.Email || '-';
+      document.getElementById('resultContact').textContent = data?.Contact || '-';
       document.getElementById('jsonData').textContent = JSON.stringify(data, null, 2);
       resultsSection.style.display = 'block';
     }
 
     function showError(message) {
       errorDiv.textContent = message;
-      errorDiv.style.display = 'flex';
+      errorDiv.style.display = 'block';
     }
     function showSuccess(message) {
       successDiv.textContent = message;
-      successDiv.style.display = 'flex';
+      successDiv.style.display = 'block';
     }
     function hideAllAlerts() {
       errorDiv.style.display = 'none';
       successDiv.style.display = 'none';
-    }
-    function scrollToResults() {
-      resultsSection.scrollIntoView({ behavior: 'smooth' });
     }
   </script>
 </body>
